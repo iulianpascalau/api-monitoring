@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/iulianpascalau/api-monitoring/commonGo"
 	agentCfg "github.com/iulianpascalau/api-monitoring/services/agent/config"
 	agentFactory "github.com/iulianpascalau/api-monitoring/services/agent/factory"
 	"github.com/iulianpascalau/api-monitoring/services/aggregation/common"
@@ -24,11 +25,11 @@ import (
 
 var log = logger.GetOrCreate("e2e-test")
 
-func createMockEnvFileContents() map[string]string {
-	return map[string]string{
-		common.EnvServiceKey:   "test-service-key",
-		common.EnvAuthUser:     "admin",
-		common.EnvAuthPassword: "password",
+func createMockEnvFileContents() map[string]*commonGo.EnvValue {
+	return map[string]*commonGo.EnvValue{
+		common.EnvServiceKey:   {Value: "test-service-key", Required: true},
+		common.EnvAuthUser:     {Value: "admin", Required: true},
+		common.EnvAuthPassword: {Value: "password", Required: true},
 	}
 }
 
@@ -56,6 +57,7 @@ func TestE2EFlow(t *testing.T) {
 		createMockEnvFileContents(),
 		aggregationConfig,
 		log,
+		"e2e-version",
 	)
 	require.NoError(t, err)
 
@@ -237,6 +239,7 @@ func TestE2EFlowWithDataTrim(t *testing.T) {
 		createMockEnvFileContents(),
 		aggregationConfig,
 		log,
+		"e2e-version",
 	)
 	require.NoError(t, err)
 
@@ -408,6 +411,7 @@ func TestE2EFlowWith2Agents(t *testing.T) {
 		createMockEnvFileContents(),
 		aggregationConfig,
 		log,
+		"e2e-version",
 	)
 	require.NoError(t, err)
 
