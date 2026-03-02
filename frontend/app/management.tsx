@@ -58,6 +58,15 @@ export default function ManagementScreen() {
         },
     });
 
+    const updateMetricAlarmMutation = useMutation({
+        mutationFn: async ({ name, enabled }: { name: string, enabled: boolean }) => {
+            await apiClient.post('/config/metrics/alarm', { name, enabled });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['metrics'] });
+        },
+    });
+
     const groupedMetrics = useMemo(() => {
         if (!metricsData?.metrics) return [];
 
@@ -212,6 +221,12 @@ export default function ManagementScreen() {
                                                 <Ionicons name="chevron-down" size={16} color="white" />
                                             </TouchableOpacity>
                                         </View>
+                                        <TouchableOpacity
+                                            onPress={() => updateMetricAlarmMutation.mutate({ name: metric.name, enabled: !metric.isAlarmEnabled })}
+                                            style={[styles.alarmButton, metric.isAlarmEnabled ? styles.alarmEnabled : styles.alarmDisabled]}
+                                        >
+                                            <Ionicons name={metric.isAlarmEnabled ? "notifications" : "notifications-off-outline"} size={18} color="white" />
+                                        </TouchableOpacity>
                                         <TouchableOpacity
                                             onPress={() => handleDelete(metric.name)}
                                             style={styles.deleteButton}
@@ -380,5 +395,16 @@ const styles = StyleSheet.create({
         padding: 6,
         borderRadius: 6,
         marginLeft: 12,
+    },
+    alarmButton: {
+        padding: 6,
+        borderRadius: 6,
+        marginLeft: 12,
+    },
+    alarmEnabled: {
+        backgroundColor: '#10b981', // green
+    },
+    alarmDisabled: {
+        backgroundColor: '#9ca3af', // gray
     },
 });

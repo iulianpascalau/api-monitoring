@@ -136,6 +136,18 @@ func TestHandlers_StorageErrors(t *testing.T) {
 	serv.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusInternalServerError, w.Code)
 	require.Contains(t, w.Body.String(), "db update metric error")
+
+	// handleUpdateMetricAlarm
+	store.UpdateMetricAlarmHandler = func(ctx context.Context, name string, enabled bool) error {
+		return errors.New("db update metric alarm error")
+	}
+	alarmReq := `{"name":"m1", "enabled":true}`
+	req, _ = http.NewRequest("POST", "/api/config/metrics/alarm", bytes.NewBuffer([]byte(alarmReq)))
+	req.Header.Set("Authorization", "Bearer "+token)
+	w = httptest.NewRecorder()
+	serv.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusInternalServerError, w.Code)
+	require.Contains(t, w.Body.String(), "db update metric alarm error")
 }
 
 func TestHandlers_BadPayloads(t *testing.T) {
