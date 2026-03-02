@@ -179,3 +179,42 @@ func TestSQLiteStorage_GetLatestMetrics_EmptyValues(t *testing.T) {
 	require.Equal(t, "", latest[0].History[0].Value)
 	require.Equal(t, int64(0), latest[0].History[0].RecordedAt)
 }
+
+func TestSQLiteStorage_UpdateMetricAlarm(t *testing.T) {
+	s, err := NewSQLiteStorage(":memory:", 3600)
+	require.NoError(t, err)
+	defer func() {
+		_ = s.Close()
+	}()
+
+	ctx := context.Background()
+
+	// 1. Initial save, should default to false
+	err = s.SaveMetric(ctx, "VM1.AlarmMetric", "string", 1, "test", time.Now().Unix())
+	require.NoError(t, err)
+
+	hist, err := s.GetMetricHistory(ctx, "VM1.AlarmMetric")
+	require.NoError(t, err)
+	require.False(t, hist.IsAlarmEnabled)
+
+	// 2. Set alarm to true
+	err = s.UpdateMetricAlarm(ctx, "VM1.AlarmMetric", true)
+	require.NoError(t, err)
+
+	hist, err = s.GetMetricHistory(ctx, "VM1.AlarmMetric")
+	require.NoError(t, err)
+	require.True(t, hist.IsAlarmEnabled)
+
+	latest, err := s.GetLatestMetrics(ctx)
+	require.NoError(t, err)
+	require.Len(t, latest, 1)
+	require.True(t, latest[0].IsAlarmEnabled)
+
+	// 3. Set alarm to false
+	err = s.UpdateMetricAlarm(ctx, "VM1.AlarmMetric", false)
+	require.NoError(t, err)
+
+	hist, err = s.GetMetricHistory(ctx, "VM1.AlarmMetric")
+	require.NoError(t, err)
+	require.False(t, hist.IsAlarmEnabled)
+}

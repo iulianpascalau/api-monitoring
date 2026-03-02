@@ -15,6 +15,7 @@ type StoreStub struct {
 	UpdateMetricOrderHandler func(ctx context.Context, name string, order int) error
 	UpdatePanelOrderHandler  func(ctx context.Context, name string, order int) error
 	GetPanelsConfigsHandler  func(ctx context.Context) (map[string]int, error)
+	UpdateMetricAlarmHandler func(ctx context.Context, name string, enabled bool) error
 	CloseHandler             func() error
 }
 
@@ -79,6 +80,15 @@ func (stub *StoreStub) GetPanelsConfigs(ctx context.Context) (map[string]int, er
 	}
 
 	return make(map[string]int), nil
+}
+
+// UpdateMetricAlarm -
+func (stub *StoreStub) UpdateMetricAlarm(ctx context.Context, name string, enabled bool) error {
+	if stub.UpdateMetricAlarmHandler != nil {
+		return stub.UpdateMetricAlarmHandler(ctx, name, enabled)
+	}
+
+	return nil
 }
 
 // Close -

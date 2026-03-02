@@ -117,6 +117,7 @@ func (s *server) setupRoutes() {
 		protected.GET("/config/panels", s.handleGetPanelsConfigs)
 		protected.POST("/config/panels", s.handleUpdatePanelOrder)
 		protected.POST("/config/metrics/order", s.handleUpdateMetricOrder)
+		protected.POST("/config/metrics/alarm", s.handleUpdateMetricAlarm)
 	}
 
 	// Serve static files from the frontend build if configured
@@ -326,6 +327,7 @@ func (s *server) handleGetMetrics(c *gin.Context) {
 		Type           string `json:"type"`
 		NumAggregation int    `json:"numAggregation"`
 		DisplayOrder   int    `json:"displayOrder"`
+		IsAlarmEnabled bool   `json:"isAlarmEnabled"`
 		RecordedAt     int64  `json:"recordedAt"`
 	}
 
@@ -338,6 +340,7 @@ func (s *server) handleGetMetrics(c *gin.Context) {
 				Type:           r.Type,
 				NumAggregation: r.NumAggregation,
 				DisplayOrder:   r.DisplayOrder,
+				IsAlarmEnabled: r.IsAlarmEnabled,
 				RecordedAt:     r.History[0].RecordedAt,
 			})
 		}
@@ -410,6 +413,24 @@ func (s *server) handleUpdateMetricOrder(c *gin.Context) {
 	}
 
 	err := s.storage.UpdateMetricOrder(c.Request.Context(), req.Name, req.Order)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func (s *server) handleUpdateMetricAlarm(c *gin.Context) {
+	var req struct {
+		Name    string `json:"name"`
+		Enabled bool   `json:"enabled"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		return
+	}
+
+	err := s.storage.UpdateMetricAlarm(c.Request.Context(), req.Name, req.Enabled)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

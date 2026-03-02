@@ -29,6 +29,15 @@ const (
 	envServiceKey        = "SERVICE_KEY"
 	envAuthUser          = "AUTH_USER"
 	envAuthPassword      = "AUTH_PASSWORD"
+	envPushoverToken     = "PUSHOVER_TOKEN"
+	envPushoverUserKey   = "PUSHOVER_USERKEY"
+	envSMTPTo            = "SMTP_TO"
+	envSMTPFrom          = "SMTP_FROM"
+	envSMTPPassword      = "SMTP_PASSWORD"
+	envSMTPPort          = "SMTP_PORT"
+	envSMTPHost          = "SMTP_HOST"
+	envTelegramBotToken  = "TELEGRAM_BOT_TOKEN"
+	envTelegramChatId    = "TELEGRAM_CHAT_ID"
 )
 
 // appVersion should be populated at build time using ldflags
@@ -80,9 +89,18 @@ VERSION:
 	}
 
 	envFileContents = map[string]string{
-		envServiceKey:   "",
-		envAuthUser:     "",
-		envAuthPassword: "",
+		envServiceKey:       "",
+		envAuthUser:         "",
+		envAuthPassword:     "",
+		envPushoverToken:    "",
+		envPushoverUserKey:  "",
+		envSMTPTo:           "",
+		envSMTPFrom:         "",
+		envSMTPPassword:     "",
+		envSMTPPort:         "",
+		envSMTPHost:         "",
+		envTelegramBotToken: "",
+		envTelegramChatId:   "",
 	}
 )
 
