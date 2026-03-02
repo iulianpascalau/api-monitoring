@@ -1,7 +1,7 @@
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState, createContext, useContext } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { getAuthToken, setAuthToken } from '../lib/api';
+import { getAuthToken, setAuthToken, setOnAuthErrorCallback } from '../lib/api';
 import { ActivityIndicator, View, useColorScheme as useDeviceColorScheme, Platform } from 'react-native';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -60,6 +60,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const deviceColorScheme = useDeviceColorScheme();
 
   useEffect(() => {
+    setOnAuthErrorCallback(() => {
+      setToken(null);
+    });
+
     (async () => {
       try {
         const [storedToken, storedTheme] = await Promise.all([
