@@ -58,6 +58,15 @@ export default function ManagementScreen() {
         },
     });
 
+    const updateMetricAlarmMutation = useMutation({
+        mutationFn: async ({ name, enabled }: { name: string, enabled: boolean }) => {
+            await apiClient.post('/config/metrics/alarm', { name, enabled });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['metrics'] });
+        },
+    });
+
     const groupedMetrics = useMemo(() => {
         if (!metricsData?.metrics) return [];
 
@@ -227,12 +236,20 @@ export default function ManagementScreen() {
                                         <Text style={[styles.metricName, isDark && styles.textDark, { fontStyle: 'italic' }]}>Active (Heartbeat)</Text>
                                         <Text style={styles.metricType}>bool</Text>
                                     </View>
-                                    <TouchableOpacity
-                                        onPress={() => handleDelete(group.heartbeat!.name)}
-                                        style={styles.deleteButton}
-                                    >
-                                        <Ionicons name="trash-outline" size={18} color="white" />
-                                    </TouchableOpacity>
+                                    <View style={styles.metricActions}>
+                                        <TouchableOpacity
+                                            onPress={() => updateMetricAlarmMutation.mutate({ name: group.heartbeat!.name, enabled: !group.heartbeat!.isAlarmEnabled })}
+                                            style={[styles.alarmButton, group.heartbeat!.isAlarmEnabled ? styles.alarmEnabled : styles.alarmDisabled]}
+                                        >
+                                            <Ionicons name={group.heartbeat!.isAlarmEnabled ? "notifications" : "notifications-off-outline"} size={18} color="white" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={() => handleDelete(group.heartbeat!.name)}
+                                            style={styles.deleteButton}
+                                        >
+                                            <Ionicons name="trash-outline" size={18} color="white" />
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
                             )}
                         </View>
@@ -380,5 +397,16 @@ const styles = StyleSheet.create({
         padding: 6,
         borderRadius: 6,
         marginLeft: 12,
+    },
+    alarmButton: {
+        padding: 6,
+        borderRadius: 6,
+        marginLeft: 12,
+    },
+    alarmEnabled: {
+        backgroundColor: '#10b981', // green
+    },
+    alarmDisabled: {
+        backgroundColor: '#9ca3af', // gray
     },
 });

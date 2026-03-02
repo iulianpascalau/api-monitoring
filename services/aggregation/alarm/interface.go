@@ -1,4 +1,4 @@
-package api
+package alarm
 
 import (
 	"context"
@@ -35,5 +35,21 @@ type Storage interface {
 	// Close shuts down the database connection
 	Close() error
 
+	IsInterfaceNil() bool
+}
+
+// OutputNotifiersHandler defines the behavior of a component that is able to notify all notifiers
+type OutputNotifiersHandler interface {
+	NotifyWithRetry(caller string, messages ...common.OutputMessage) error
+	IsInterfaceNil() bool
+}
+
+// StatusHandler defines the operations of a component able to keep the status of the app
+type StatusHandler interface {
+	NotifyAppStart()
+	ErrorEncountered(err error)
+	CollectKeysProblems(messages []common.OutputMessage)
+	Execute(ctx context.Context) error
+	SendCloseMessage()
 	IsInterfaceNil() bool
 }

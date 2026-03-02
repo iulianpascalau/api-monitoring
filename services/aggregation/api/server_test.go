@@ -245,4 +245,20 @@ func TestConfigEndpoints(t *testing.T) {
 	serv.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code)
 	require.Contains(t, w.Body.String(), `"displayOrder":5`)
+
+	// 5. Test Update Metric Alarm
+	alarmReq := `{"name":"VM1.CPU", "enabled":true}`
+	req, _ = http.NewRequest("POST", "/api/config/metrics/alarm", bytes.NewBuffer([]byte(alarmReq)))
+	req.Header.Set("Authorization", "Bearer "+token)
+	w = httptest.NewRecorder()
+	serv.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	// 6. Verify alarm set
+	req, _ = http.NewRequest("GET", "/api/metrics/VM1.CPU/history", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w = httptest.NewRecorder()
+	serv.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Contains(t, w.Body.String(), `"isAlarmEnabled":true`)
 }

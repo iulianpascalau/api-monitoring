@@ -71,10 +71,11 @@ func createSchema(db *sql.DB) error {
 
 	schema := `
 	CREATE TABLE IF NOT EXISTS metrics (
-		name            TEXT    NOT NULL PRIMARY KEY,
-		type            TEXT    NOT NULL,
-		num_aggregation INTEGER NOT NULL DEFAULT 1,
-		display_order   INTEGER NOT NULL DEFAULT 0
+		name               TEXT    NOT NULL PRIMARY KEY,
+		type               TEXT    NOT NULL,
+		num_aggregation    INTEGER NOT NULL DEFAULT 1,
+		display_order      INTEGER NOT NULL DEFAULT 0,
+		is_alarm_enabled   INTEGER NOT NULL DEFAULT 0
 	);
 
 	CREATE TABLE IF NOT EXISTS panel_configs (
@@ -97,8 +98,9 @@ func createSchema(db *sql.DB) error {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}
 
-	// Migration: ensure display_order column exists in metrics
+	// Migration: ensure display_order and is_alarm_enabled columns exist in metrics
 	_, _ = db.Exec("ALTER TABLE metrics ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0;")
+	_, _ = db.Exec("ALTER TABLE metrics ADD COLUMN is_alarm_enabled INTEGER NOT NULL DEFAULT 0;")
 
 	// Make sure ON DELETE CASCADE works if enabled globally
 	_, _ = db.Exec("PRAGMA foreign_keys = ON;")
@@ -153,7 +155,7 @@ func (s *sqliteStorage) SaveMetric(ctx context.Context, name string, metricType 
 // GetLatestMetrics fetches the most recent value for each metric
 func (s *sqliteStorage) GetLatestMetrics(ctx context.Context) ([]common.MetricHistory, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT m.name, m.type, m.num_aggregation, m.display_order, v.value, v.recorded_at
+		SELECT m.name, m.type, m.num_aggregation, m.display_order, m.is_alarm_enabled, v.value, v.recorded_at
 		FROM metrics m
 		LEFT JOIN (
 			SELECT metric_name, value, recorded_at,
@@ -174,11 +176,14 @@ func (s *sqliteStorage) GetLatestMetrics(ctx context.Context) ([]common.MetricHi
 		var h common.MetricHistory
 		var val sql.NullString
 		var recAt sql.NullInt64
+		var isAlarm int
 
-		err = rows.Scan(&h.Name, &h.Type, &h.NumAggregation, &h.DisplayOrder, &val, &recAt)
+		err = rows.Scan(&h.Name, &h.Type, &h.NumAggregation, &h.DisplayOrder, &isAlarm, &val, &recAt)
 		if err != nil {
 			return nil, err
 		}
+
+		h.IsAlarmEnabled = isAlarm == 1
 
 		v := ""
 		if val.Valid {
@@ -204,14 +209,16 @@ func (s *sqliteStorage) GetLatestMetrics(ctx context.Context) ([]common.MetricHi
 // GetMetricHistory returns the metric configuration and up to 'num_aggregation' historical values
 func (s *sqliteStorage) GetMetricHistory(ctx context.Context, name string) (*common.MetricHistory, error) {
 	var h common.MetricHistory
+	var isAlarm int
 
-	err := s.db.QueryRowContext(ctx, "SELECT name, type, num_aggregation, display_order FROM metrics WHERE name = ?", name).Scan(&h.Name, &h.Type, &h.NumAggregation, &h.DisplayOrder)
+	err := s.db.QueryRowContext(ctx, "SELECT name, type, num_aggregation, display_order, is_alarm_enabled FROM metrics WHERE name = ?", name).Scan(&h.Name, &h.Type, &h.NumAggregation, &h.DisplayOrder, &isAlarm)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("metric not found")
 	}
 	if err != nil {
 		return nil, err
 	}
+	h.IsAlarmEnabled = isAlarm == 1
 
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT value, recorded_at 
@@ -250,6 +257,16 @@ func (s *sqliteStorage) DeleteMetric(ctx context.Context, name string) error {
 // UpdateMetricOrder updates the display order of a specific metric
 func (s *sqliteStorage) UpdateMetricOrder(ctx context.Context, name string, order int) error {
 	_, err := s.db.ExecContext(ctx, "UPDATE metrics SET display_order = ? WHERE name = ?", order, name)
+	return err
+}
+
+// UpdateMetricAlarm updates the alarm status of a specific metric
+func (s *sqliteStorage) UpdateMetricAlarm(ctx context.Context, name string, enabled bool) error {
+	val := 0
+	if enabled {
+		val = 1
+	}
+	_, err := s.db.ExecContext(ctx, "UPDATE metrics SET is_alarm_enabled = ? WHERE name = ?", val, name)
 	return err
 }
 

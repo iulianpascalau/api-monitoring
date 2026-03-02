@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/iulianpascalau/api-monitoring/commonGo"
+	"github.com/iulianpascalau/api-monitoring/services/aggregation/common"
 	"github.com/iulianpascalau/api-monitoring/services/aggregation/config"
 	"github.com/iulianpascalau/api-monitoring/services/aggregation/factory"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -26,9 +27,6 @@ const (
 	logFileLifeSpanInMB  = 1024  // 1GB
 	configFile           = "./config.toml"
 	envFile              = "./.env"
-	envServiceKey        = "SERVICE_KEY"
-	envAuthUser          = "AUTH_USER"
-	envAuthPassword      = "AUTH_PASSWORD"
 )
 
 // appVersion should be populated at build time using ldflags
@@ -79,10 +77,19 @@ VERSION:
 		Value: "",
 	}
 
-	envFileContents = map[string]string{
-		envServiceKey:   "",
-		envAuthUser:     "",
-		envAuthPassword: "",
+	envFileContents = map[string]*commonGo.EnvValue{
+		common.EnvServiceKey:       {Value: "", Required: true},
+		common.EnvAuthUser:         {Value: "", Required: true},
+		common.EnvAuthPassword:     {Value: "", Required: true},
+		common.EnvPushoverToken:    {Value: "", Required: false},
+		common.EnvPushoverUserKey:  {Value: "", Required: false},
+		common.EnvSMTPTo:           {Value: "", Required: false},
+		common.EnvSMTPFrom:         {Value: "", Required: false},
+		common.EnvSMTPPassword:     {Value: "", Required: false},
+		common.EnvSMTPPort:         {Value: "", Required: false},
+		common.EnvSMTPHost:         {Value: "", Required: false},
+		common.EnvTelegramBotToken: {Value: "", Required: false},
+		common.EnvTelegramChatId:   {Value: "", Required: false},
 	}
 )
 
@@ -158,10 +165,10 @@ func run(ctx *cli.Context) error {
 
 	components, err := factory.NewComponentsHandler(
 		sqlitePath,
-		envFileContents[envServiceKey],
-		envFileContents[envAuthUser],
-		envFileContents[envAuthPassword],
+		envFileContents,
 		*cfg,
+		log,
+		appVersion,
 	)
 	if err != nil {
 		return err

@@ -24,17 +24,19 @@ import (
 var log = logger.GetOrCreate("api")
 
 type server struct {
-	router         *gin.Engine
-	httpServer     *http.Server
-	storage        Storage
-	serviceKey     string
-	username       string
-	password       string
-	listenAddr     string
-	staticDir      string
-	jwtSecret      []byte
-	generalHandler func(http.Handler) http.Handler
-	wg             sync.WaitGroup
+	router                    *gin.Engine
+	httpServer                *http.Server
+	storage                   Storage
+	serviceKey                string
+	username                  string
+	password                  string
+	listenAddr                string
+	staticDir                 string
+	jwtSecret                 []byte
+	generalHandler            func(http.Handler) http.Handler
+	wg                        sync.WaitGroup
+	numSecondsToConsiderStale int
+	appVersion                string
 }
 
 // MetricReportPayload represents the incoming JSON body on /api/report
@@ -48,13 +50,15 @@ type MetricReportPayload struct {
 
 // ArgsWebServer defines the web server arguments
 type ArgsWebServer struct {
-	ServiceKeyApi  string
-	AuthUsername   string
-	AuthPassword   string
-	ListenAddress  string
-	StaticDir      string
-	Storage        Storage
-	GeneralHandler func(http.Handler) http.Handler
+	ServiceKeyApi             string
+	AuthUsername              string
+	AuthPassword              string
+	ListenAddress             string
+	StaticDir                 string
+	Storage                   Storage
+	GeneralHandler            func(http.Handler) http.Handler
+	NumSecondsToConsiderStale int
+	AppVersion                string
 }
 
 // NewServer initializes the Gin engine and mounts all routes
@@ -82,15 +86,17 @@ func NewServer(args ArgsWebServer) (*server, error) {
 	router.Use(gin.Recovery())
 
 	s := &server{
-		router:         router,
-		storage:        args.Storage,
-		serviceKey:     args.ServiceKeyApi,
-		username:       args.AuthUsername,
-		password:       args.AuthPassword,
-		listenAddr:     args.ListenAddress,
-		staticDir:      args.StaticDir,
-		generalHandler: args.GeneralHandler,
-		jwtSecret:      jwtSecret,
+		router:                    router,
+		storage:                   args.Storage,
+		serviceKey:                args.ServiceKeyApi,
+		username:                  args.AuthUsername,
+		password:                  args.AuthPassword,
+		listenAddr:                args.ListenAddress,
+		staticDir:                 args.StaticDir,
+		generalHandler:            args.GeneralHandler,
+		jwtSecret:                 jwtSecret,
+		numSecondsToConsiderStale: args.NumSecondsToConsiderStale,
+		appVersion:                args.AppVersion,
 	}
 
 	s.setupRoutes()
@@ -103,6 +109,9 @@ func (s *server) setupRoutes() {
 	// Agent reporting endpoint
 	api.POST("/report", s.authAPIKey(), s.handleReport)
 
+	// Public app info
+	api.GET("/app-info", s.handleAppInfo)
+
 	// Frontend authentication
 	api.POST("/auth/login", s.handleLogin)
 
@@ -114,9 +123,11 @@ func (s *server) setupRoutes() {
 		protected.GET("/metrics/:name/history", s.handleGetMetricHistory)
 		protected.DELETE("/metrics/:name", s.handleDeleteMetric)
 
+		protected.GET("/config/general", s.handleGetGeneralConfig)
 		protected.GET("/config/panels", s.handleGetPanelsConfigs)
 		protected.POST("/config/panels", s.handleUpdatePanelOrder)
 		protected.POST("/config/metrics/order", s.handleUpdateMetricOrder)
+		protected.POST("/config/metrics/alarm", s.handleUpdateMetricAlarm)
 	}
 
 	// Serve static files from the frontend build if configured
@@ -326,6 +337,7 @@ func (s *server) handleGetMetrics(c *gin.Context) {
 		Type           string `json:"type"`
 		NumAggregation int    `json:"numAggregation"`
 		DisplayOrder   int    `json:"displayOrder"`
+		IsAlarmEnabled bool   `json:"isAlarmEnabled"`
 		RecordedAt     int64  `json:"recordedAt"`
 	}
 
@@ -338,6 +350,7 @@ func (s *server) handleGetMetrics(c *gin.Context) {
 				Type:           r.Type,
 				NumAggregation: r.NumAggregation,
 				DisplayOrder:   r.DisplayOrder,
+				IsAlarmEnabled: r.IsAlarmEnabled,
 				RecordedAt:     r.History[0].RecordedAt,
 			})
 		}
@@ -415,4 +428,34 @@ func (s *server) handleUpdateMetricOrder(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func (s *server) handleUpdateMetricAlarm(c *gin.Context) {
+	var req struct {
+		Name    string `json:"name"`
+		Enabled bool   `json:"enabled"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		return
+	}
+
+	err := s.storage.UpdateMetricAlarm(c.Request.Context(), req.Name, req.Enabled)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func (s *server) handleGetGeneralConfig(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"numSecondsToConsiderStale": s.numSecondsToConsiderStale,
+	})
+}
+
+func (s *server) handleAppInfo(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"version": s.appVersion,
+	})
 }

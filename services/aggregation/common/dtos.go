@@ -6,6 +6,7 @@ type MetricDefinition struct {
 	Type           string `json:"type"`
 	NumAggregation int    `json:"numAggregation"`
 	DisplayOrder   int    `json:"displayOrder"`
+	IsAlarmEnabled bool   `json:"isAlarmEnabled"`
 }
 
 // MetricValue represents a single reported data point
@@ -20,5 +21,14 @@ type MetricHistory struct {
 	Type           string        `json:"type"`
 	NumAggregation int           `json:"numAggregation"`
 	DisplayOrder   int           `json:"displayOrder"`
+	IsAlarmEnabled bool          `json:"isAlarmEnabled"`
 	History        []MetricValue `json:"history"`
+}
+
+// OutputMessage defines the message to be sent to an output notifier
+type OutputMessage struct {
+	Type               MessageOutputType
+	Identifier         string
+	ExecutorName       string
+	ProblemEncountered string
 }

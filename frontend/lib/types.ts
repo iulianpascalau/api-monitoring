@@ -5,6 +5,7 @@ export interface Metric {
     numAggregation: number;
     recordedAt: number;
     displayOrder: number;
+    isAlarmEnabled?: boolean;
 }
 
 export interface MetricGroup {
