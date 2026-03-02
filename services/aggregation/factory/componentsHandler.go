@@ -45,13 +45,14 @@ func NewComponentsHandler(
 	}
 
 	serverArgs := api.ArgsWebServer{
-		ServiceKeyApi:  envFileContents[common.EnvServiceKey],
-		AuthUsername:   envFileContents[common.EnvAuthUser],
-		AuthPassword:   envFileContents[common.EnvAuthPassword],
-		ListenAddress:  cfg.ListenAddress,
-		StaticDir:      cfg.StaticDir,
-		Storage:        store,
-		GeneralHandler: api.CORSMiddleware,
+		ServiceKeyApi:             envFileContents[common.EnvServiceKey],
+		AuthUsername:              envFileContents[common.EnvAuthUser],
+		AuthPassword:              envFileContents[common.EnvAuthPassword],
+		ListenAddress:             cfg.ListenAddress,
+		StaticDir:                 cfg.StaticDir,
+		Storage:                   store,
+		GeneralHandler:            api.CORSMiddleware,
+		NumSecondsToConsiderStale: cfg.NumSecondsToConsiderStale,
 	}
 
 	server, err := api.NewServer(serverArgs)
