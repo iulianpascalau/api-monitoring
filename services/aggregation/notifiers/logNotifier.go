@@ -58,7 +58,7 @@ func composeMessage(message common.OutputMessage) string {
 		stringBuilder.WriteString(message.ProblemEncountered)
 		stringBuilder.WriteString(" ")
 	}
-	stringBuilder.WriteString(fmt.Sprintf("called by %s", message.ExecutorName))
+	_, _ = fmt.Fprintf(stringBuilder, "called by %s", message.ExecutorName)
 
 	return stringBuilder.String()
 }

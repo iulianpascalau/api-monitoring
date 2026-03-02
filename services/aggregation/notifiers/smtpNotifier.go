@@ -115,7 +115,7 @@ func createEmailBytes(msg string, title string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	body.Write([]byte(fmt.Sprintf("Subject: %s \n%s\n\n", title, mimeHeaders)))
+	_, _ = fmt.Fprintf(&body, "Subject: %s \n%s\n\n", title, mimeHeaders)
 
 	err = mailTemplate.Execute(&body, struct {
 		Body template.HTML
