@@ -102,7 +102,7 @@ export default function LoginScreen() {
 
                 <View style={{ marginTop: 24, alignItems: 'center' }}>
                     <Text style={{ fontSize: 12, color: isDark ? '#9ca3af' : '#6b7280' }}>
-                        Backend v{version} | <Text
+                        Backend {version} | <Text
                             style={{ textDecorationLine: 'underline' }}
                             onPress={() => Linking.openURL('https://github.com/iulianpascalau/api-monitoring')}
                         >Solution</Text>

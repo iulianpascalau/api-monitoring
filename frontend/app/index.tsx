@@ -295,7 +295,7 @@ export default function DashboardScreen() {
 
                 <View style={{ alignItems: 'center', marginTop: 16, marginBottom: 8 }}>
                     <Text style={{ fontSize: 12, color: isDark ? '#9ca3af' : '#6b7280' }}>
-                        Backend v{appInfo?.version || '...'} | <Text
+                        Backend {appInfo?.version || '...'} | <Text
                             style={{ textDecorationLine: 'underline' }}
                             onPress={() => Linking.openURL('https://github.com/iulianpascalau/api-monitoring')}
                         >Solution</Text>
