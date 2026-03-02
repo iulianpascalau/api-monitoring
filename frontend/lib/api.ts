@@ -55,3 +55,22 @@ export const setAuthToken = async (token: string | null) => {
 };
 
 export const getAuthToken = async () => AsyncStorage.getItem("jwt_token");
+
+let onAuthErrorCallback: (() => void) | null = null;
+
+export const setOnAuthErrorCallback = (cb: () => void) => {
+    onAuthErrorCallback = cb;
+};
+
+apiClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        if (error.response && error.response.status === 401) {
+            await setAuthToken(null);
+            if (onAuthErrorCallback) {
+                onAuthErrorCallback();
+            }
+        }
+        return Promise.reject(error);
+    }
+);
